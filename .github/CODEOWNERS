@@ -1,0 +1,17 @@
+# Explorer CODEOWNERS
+#
+# NOTE: GitHub teams referenced below need to be created in the organization.
+# Until teams are created, replace @xai-blockchain/* with actual GitHub usernames.
+
+# Default owners
+# * @xai-blockchain/core-team
+
+# Backend
+# /backend/ @xai-blockchain/core-team @xai-blockchain/security
+
+# Frontend
+# /frontend/ @xai-blockchain/frontend-team
+
+# Infrastructure
+# /.github/ @xai-blockchain/devops
+# /docker/ @xai-blockchain/devops
