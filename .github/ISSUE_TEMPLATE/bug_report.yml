@@ -1,0 +1,64 @@
+name: Bug Report
+description: Report a bug in XAI Explorer
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please provide as much detail as possible.
+
+        **Security vulnerabilities**: Do NOT report here. Email security@xai.network instead.
+
+  - type: input
+    id: url
+    attributes:
+      label: Explorer URL
+      description: Which explorer instance are you using?
+      placeholder: "https://testnet-explorer.xaiblockchain.com"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Navigate to...
+        2. Click on...
+        3. Observe error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Block View
+        - Transaction View
+        - Address/Account View
+        - Validator Dashboard
+        - Search
+        - API
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      placeholder: "Chrome 120, Firefox 121, Safari 17"
