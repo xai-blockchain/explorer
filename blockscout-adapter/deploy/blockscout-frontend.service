@@ -1,0 +1,20 @@
+[Unit]
+Description=Blockscout Frontend (Next.js)
+After=network.target blockscout-backend.service
+Wants=blockscout-backend.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/blockscout-frontend
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+Environment=NODE_ENV=production
+Environment=PORT=3000
+
+[Install]
+WantedBy=multi-user.target

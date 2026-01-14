@@ -1,0 +1,27 @@
+[Unit]
+Description=XAI Blockscout RPC Adapter
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/blockscout-adapter
+# Multi-node configuration - uses both sentry nodes with load balancing
+Environment=XAI_NODE_URLS=http://127.0.0.1:12570,http://127.0.0.1:12571
+Environment=XAI_CHAIN_ID=1337
+Environment=CORS_ORIGINS=*
+Environment=LOG_LEVEL=INFO
+# Load balance strategy: fastest, round_robin, or random
+Environment=LOAD_BALANCE_STRATEGY=fastest
+# Health check interval in seconds
+Environment=HEALTH_CHECK_INTERVAL=30
+ExecStart=/home/ubuntu/blockscout-adapter/venv/bin/uvicorn src.main:app --host 0.0.0.0 --port 8545
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

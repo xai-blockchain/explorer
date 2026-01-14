@@ -1,0 +1,22 @@
+[Unit]
+Description=Blockscout Backend (Elixir)
+After=network.target postgresql.service xai-rpc-adapter.service
+Requires=postgresql.service
+Wants=xai-rpc-adapter.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/blockscout
+EnvironmentFile=/home/ubuntu/blockscout/.env
+ExecStart=/home/ubuntu/.mix/escripts/phx server
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+Environment=MIX_ENV=prod
+Environment=PORT=4000
+
+[Install]
+WantedBy=multi-user.target

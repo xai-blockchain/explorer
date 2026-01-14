@@ -1,0 +1,138 @@
+version: '3.8'
+
+services:
+  # XAI RPC Adapter
+  rpc-adapter:
+    build: .
+    container_name: xai-rpc-adapter
+    ports:
+      - "8545:8545"
+    environment:
+      - XAI_PRIMARY_URL=${XAI_PRIMARY_URL:-http://host.docker.internal:12570}
+      - XAI_FALLBACK_URL=${XAI_FALLBACK_URL:-http://host.docker.internal:12571}
+      - XAI_CHAIN_ID=${XAI_CHAIN_ID:-1337}
+      - CORS_ORIGINS=*
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    networks:
+      - blockscout
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8545/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL for Blockscout
+  postgres:
+    image: postgres:15-alpine
+    container_name: blockscout-postgres
+    environment:
+      POSTGRES_USER: blockscout
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-blockscout_password}
+      POSTGRES_DB: blockscout
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - blockscout
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blockscout"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Blockscout Backend (Elixir)
+  blockscout-backend:
+    image: blockscout/blockscout:latest
+    container_name: blockscout-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rpc-adapter:
+        condition: service_healthy
+    environment:
+      # Database
+      DATABASE_URL: postgresql://blockscout:${POSTGRES_PASSWORD:-blockscout_password}@postgres:5432/blockscout
+
+      # Ethereum JSON-RPC (points to our adapter)
+      ETHEREUM_JSONRPC_HTTP_URL: http://rpc-adapter:8545
+      ETHEREUM_JSONRPC_TRACE_URL: http://rpc-adapter:8545
+      ETHEREUM_JSONRPC_WS_URL: ws://rpc-adapter:8545/ws
+      ETHEREUM_JSONRPC_VARIANT: geth
+
+      # Chain Configuration
+      CHAIN_ID: ${XAI_CHAIN_ID:-1337}
+      COIN: XAI
+      COIN_NAME: XAI
+      NETWORK: XAI Testnet
+      SUBNETWORK: MVP Testnet
+
+      # Disable features not supported by XAI
+      DISABLE_REALTIME_INDEXER: "false"
+      INDEXER_DISABLE_PENDING_TRANSACTIONS_FETCHER: "true"
+      INDEXER_DISABLE_INTERNAL_TRANSACTIONS_FETCHER: "true"
+
+      # API
+      API_V2_ENABLED: "true"
+      ENABLE_SOURCIFY_INTEGRATION: "false"
+      DISABLE_KNOWN_TOKENS: "true"
+
+      # Display
+      SHOW_PRICE_CHART: "false"
+      SHOW_TXS_CHART: "true"
+      ENABLE_TXS_STATS: "true"
+
+      # Server
+      PORT: 4000
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-please_generate_a_real_secret_key_base_using_mix_phx_gen_secret}
+
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
+    networks:
+      - blockscout
+
+  # Blockscout Frontend (React/Next.js)
+  blockscout-frontend:
+    image: ghcr.io/blockscout/frontend:latest
+    container_name: blockscout-frontend
+    depends_on:
+      - blockscout-backend
+    environment:
+      # API Configuration
+      NEXT_PUBLIC_API_HOST: localhost
+      NEXT_PUBLIC_API_PORT: 4000
+      NEXT_PUBLIC_API_PROTOCOL: http
+      NEXT_PUBLIC_API_WEBSOCKET_PROTOCOL: ws
+
+      # Network Info
+      NEXT_PUBLIC_NETWORK_NAME: XAI Testnet
+      NEXT_PUBLIC_NETWORK_SHORT_NAME: XAI
+      NEXT_PUBLIC_NETWORK_ID: ${XAI_CHAIN_ID:-1337}
+      NEXT_PUBLIC_NETWORK_CURRENCY_NAME: XAI
+      NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: XAI
+      NEXT_PUBLIC_NETWORK_CURRENCY_DECIMALS: 18
+
+      # Features
+      NEXT_PUBLIC_IS_TESTNET: "true"
+      NEXT_PUBLIC_HAS_BEACON_CHAIN: "false"
+
+      # Disable ads
+      NEXT_PUBLIC_AD_BANNER_PROVIDER: none
+      NEXT_PUBLIC_AD_TEXT_PROVIDER: none
+
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    networks:
+      - blockscout
+
+networks:
+  blockscout:
+    driver: bridge
+
+volumes:
+  postgres_data:

@@ -31,18 +31,35 @@ const api = axios.create({
   },
 });
 
+// Transform raw block from API to Block interface
+function transformBlock(raw: Record<string, unknown>): Block {
+  return {
+    height: (raw.index as number) || (raw.height as number) || 0,
+    hash: (raw.hash as string) || '',
+    previousHash: (raw.previous_hash as string) || (raw.previousHash as string) || '',
+    timestamp: raw.timestamp ? new Date((raw.timestamp as number) * 1000).toISOString() : '',
+    transactions: (raw.transactions as (string | { txid: string })[]) || [],
+    transactionCount: Array.isArray(raw.transactions) ? raw.transactions.length : 0,
+    miner: (raw.miner as string) || '',
+    difficulty: (raw.difficulty as number) || 0,
+    nonce: (raw.nonce as number) || 0,
+    size: (raw.size as number) || 0,
+    merkleRoot: (raw.merkle_root as string) || (raw.merkleRoot as string) || '',
+  };
+}
+
 // Blocks API
 export async function getBlocks(page = 1, limit = 20): Promise<{ blocks: Block[]; total: number }> {
   const { data } = await api.get('/blocks', { params: { page, limit } });
   return {
-    blocks: data.blocks || [],
+    blocks: (data.blocks || []).map(transformBlock),
     total: data.total || 0,
   };
 }
 
 export async function getBlock(blockId: string): Promise<Block> {
   const { data } = await api.get(`/blocks/${blockId}`);
-  return data;
+  return transformBlock(data);
 }
 
 // Transactions API
@@ -80,20 +97,22 @@ export async function search(query: string): Promise<SearchResult[]> {
 // Network Stats API
 export async function getNetworkStats(): Promise<NetworkStats> {
   const { data } = await api.get('/analytics/network');
+  // Handle both nested format (blockchain.total_blocks) and flat format (chain_height)
+  const isFlat = data.chain_height !== undefined;
   return {
     blockchain: {
-      totalBlocks: data.blockchain?.total_blocks || 0,
-      totalTransactions: data.blockchain?.total_transactions || 0,
-      totalAddresses: data.blockchain?.total_addresses || 0,
-      activeAddresses24h: data.blockchain?.active_addresses_24h || 0,
-      avgBlockTime: data.blockchain?.avg_block_time || 0,
-      networkHashrate: data.blockchain?.network_hashrate || '0',
-      difficulty: data.blockchain?.difficulty || 0,
-      totalSupply: data.blockchain?.total_supply || '0',
+      totalBlocks: isFlat ? (data.chain_height || 0) : (data.blockchain?.total_blocks || 0),
+      totalTransactions: isFlat ? 0 : (data.blockchain?.total_transactions || 0),
+      totalAddresses: isFlat ? 0 : (data.blockchain?.total_addresses || 0),
+      activeAddresses24h: isFlat ? 0 : (data.blockchain?.active_addresses_24h || 0),
+      avgBlockTime: isFlat ? 0 : (data.blockchain?.avg_block_time || 0),
+      networkHashrate: isFlat ? '0' : (data.blockchain?.network_hashrate || '0'),
+      difficulty: isFlat ? (data.difficulty || 0) : (data.blockchain?.difficulty || 0),
+      totalSupply: isFlat ? String(data.total_circulating_supply || 0) : (data.blockchain?.total_supply || '0'),
     },
     mempool: {
-      pendingTransactions: data.mempool?.pending_transactions || 0,
-      totalSizeKb: data.mempool?.total_size_kb || 0,
+      pendingTransactions: isFlat ? (data.pending_transactions_count || 0) : (data.mempool?.pending_transactions || 0),
+      totalSizeKb: isFlat ? (data.mempool_size_bytes / 1024 || 0) : (data.mempool?.total_size_kb || 0),
     },
     updatedAt: data.updated_at || new Date().toISOString(),
   };

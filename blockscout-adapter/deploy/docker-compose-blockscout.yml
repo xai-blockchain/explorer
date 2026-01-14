@@ -1,0 +1,145 @@
+version: '3.8'
+
+# Blockscout deployment for XAI
+# The RPC adapter runs as a systemd service on the host
+# This compose file deploys only Blockscout components
+
+services:
+  # PostgreSQL for Blockscout
+  postgres:
+    image: postgres:15-alpine
+    container_name: blockscout-postgres
+    environment:
+      POSTGRES_USER: blockscout
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-xai_blockscout_2026}
+      POSTGRES_DB: blockscout
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    restart: unless-stopped
+    networks:
+      - blockscout
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blockscout"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Blockscout Backend (Elixir)
+  blockscout-backend:
+    image: blockscout/blockscout:latest
+    container_name: blockscout-backend
+    command: sh -c "bin/blockscout eval 'Elixir.Explorer.ReleaseTasks.create_and_migrate()' && bin/blockscout start"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      # Database (disable SSL for local postgres)
+      DATABASE_URL: postgresql://blockscout:${POSTGRES_PASSWORD:-xai_blockscout_2026}@postgres:5432/blockscout
+      ECTO_USE_SSL: "false"
+
+      # Ethereum JSON-RPC (points to host RPC adapter via docker gateway)
+      ETHEREUM_JSONRPC_HTTP_URL: http://172.20.0.1:8545
+      ETHEREUM_JSONRPC_TRACE_URL: http://172.20.0.1:8545
+      ETHEREUM_JSONRPC_VARIANT: geth
+
+      # Chain Configuration
+      CHAIN_ID: "1337"
+      COIN: XAI
+      COIN_NAME: XAI
+      NETWORK: XAI Testnet
+      SUBNETWORK: MVP Testnet
+
+      # Indexer settings
+      DISABLE_REALTIME_INDEXER: "false"
+      INDEXER_DISABLE_PENDING_TRANSACTIONS_FETCHER: "true"
+      INDEXER_DISABLE_INTERNAL_TRANSACTIONS_FETCHER: "true"
+      INDEXER_DISABLE_TOKEN_INSTANCE_REALTIME_FETCHER: "true"
+      INDEXER_DISABLE_TOKEN_INSTANCE_RETRY_FETCHER: "true"
+      INDEXER_DISABLE_TOKEN_INSTANCE_SANITIZE_FETCHER: "true"
+      INDEXER_CATCHUP_BLOCKS_BATCH_SIZE: "10"
+      INDEXER_CATCHUP_BLOCKS_CONCURRENCY: "5"
+      TRACE_FIRST_BLOCK: "0"
+
+      # API
+      API_V2_ENABLED: "true"
+      ENABLE_SOURCIFY_INTEGRATION: "false"
+      DISABLE_KNOWN_TOKENS: "true"
+      DISABLE_BRIDGE_MARKET_CAP_UPDATER: "true"
+
+      # Display
+      SHOW_PRICE_CHART: "false"
+      SHOW_TXS_CHART: "true"
+      ENABLE_TXS_STATS: "true"
+
+      # Server
+      PORT: "4000"
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-v7BhP2sKp9MqXn8LwRtY4cZfG6dJ1eAoUiNbEkWxHmQjCvDzFyT0S3PlO5nIrMaL}
+
+      # Misc
+      HEALTHY_BLOCKS_PERIOD: "60"
+      HISTORY_FETCH_INTERVAL: "30"
+
+    ports:
+      - "127.0.0.1:4000:4000"
+    restart: unless-stopped
+    networks:
+      - blockscout
+
+  # Blockscout Frontend (React/Next.js)
+  blockscout-frontend:
+    image: ghcr.io/blockscout/frontend:latest
+    container_name: blockscout-frontend
+    depends_on:
+      - blockscout-backend
+    environment:
+      # App host (required)
+      NEXT_PUBLIC_APP_HOST: localhost
+
+      # API Configuration - connect to backend via docker gateway
+      NEXT_PUBLIC_API_HOST: 172.20.0.1
+      NEXT_PUBLIC_API_PORT: "4000"
+      NEXT_PUBLIC_API_PROTOCOL: http
+      NEXT_PUBLIC_API_WEBSOCKET_PROTOCOL: ws
+
+      # Network Info
+      NEXT_PUBLIC_NETWORK_NAME: XAI Testnet
+      NEXT_PUBLIC_NETWORK_SHORT_NAME: XAI
+      NEXT_PUBLIC_NETWORK_ID: "1337"
+      NEXT_PUBLIC_NETWORK_CURRENCY_NAME: XAI
+      NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: XAI
+      NEXT_PUBLIC_NETWORK_CURRENCY_DECIMALS: "18"
+
+      # Features
+      NEXT_PUBLIC_IS_TESTNET: "true"
+      NEXT_PUBLIC_HAS_BEACON_CHAIN: "false"
+      NEXT_PUBLIC_HAS_USER_OPS: "false"
+
+      # Branding
+      NEXT_PUBLIC_HOMEPAGE_PLATE_BACKGROUND: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)"
+      NEXT_PUBLIC_HOMEPAGE_PLATE_TEXT_COLOR: "white"
+      NEXT_PUBLIC_OG_DESCRIPTION: "XAI Blockchain Explorer - AI Compute Pooling Network"
+
+      # Disable features
+      NEXT_PUBLIC_HAS_CONTRACT_AUDIT_REPORTS: "false"
+      NEXT_PUBLIC_AD_BANNER_PROVIDER: none
+      NEXT_PUBLIC_AD_TEXT_PROVIDER: none
+      NEXT_PUBLIC_MARKETPLACE_ENABLED: "false"
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:3001:3000"
+    restart: unless-stopped
+    networks:
+      - blockscout
+
+networks:
+  blockscout:
+    driver: bridge
+
+volumes:
+  postgres_data:
