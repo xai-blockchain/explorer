@@ -1,16 +1,18 @@
-from __future__ import annotations
-
 """
 AI Task service - Monitors and tracks AI compute tasks
 """
+
+from __future__ import annotations
+
 import asyncio
 import logging
-
 from datetime import datetime
-from fastapi import WebSocket
+
 import httpx
+from fastapi import WebSocket
 
 logger = logging.getLogger(__name__)
+
 
 class AITaskService:
     """
@@ -65,11 +67,8 @@ class AITaskService:
     async def _check_new_tasks(self):
         """Check for new AI tasks"""
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    f"{self.node_url}/ai/tasks/recent",
-                    timeout=10.0
-                )
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(f"{self.node_url}/ai/tasks/recent", timeout=10.0)
                 if response.status_code == 200:
                     tasks = response.json()
                     # Broadcast new tasks to WebSocket clients
@@ -83,11 +82,8 @@ class AITaskService:
     async def _update_provider_stats(self):
         """Update provider statistics"""
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    f"{self.node_url}/ai/providers/stats",
-                    timeout=10.0
-                )
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(f"{self.node_url}/ai/providers/stats", timeout=10.0)
                 if response.status_code == 200:
                     stats = response.json()
                     # In production: Update database
@@ -103,7 +99,7 @@ class AITaskService:
             "completed_tasks": 1203,
             "failed_tasks": 32,
             "active_providers": 15,
-            "total_compute_cost": 18542.75
+            "total_compute_cost": 18542.75,
         }
 
     def subscribe_websocket(self, websocket: WebSocket):
@@ -120,11 +116,14 @@ class AITaskService:
             return
 
         import json
-        message = json.dumps({
-            "type": "ai_task_update",
-            "data": task_data,
-            "timestamp": datetime.utcnow().isoformat()
-        })
+
+        message = json.dumps(
+            {
+                "type": "ai_task_update",
+                "data": task_data,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        )
 
         disconnected = []
         for ws in self.websockets:

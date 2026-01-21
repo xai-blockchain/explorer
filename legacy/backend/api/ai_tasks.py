@@ -1,19 +1,21 @@
-from __future__ import annotations
-
 """
 AI tasks API endpoints.
 """
-from fastapi import APIRouter, Query, HTTPException, Depends
 
-from datetime import datetime, timedelta
-import httpx
+from __future__ import annotations
+
 import logging
+from datetime import datetime, timedelta
+
+import httpx
+from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # XAI Node connection
 node_url = "http://localhost:12001"
+
 
 @router.get("/tasks")
 async def get_ai_tasks(
@@ -22,19 +24,15 @@ async def get_ai_tasks(
     ai_model: str | None = None,
     provider: str | None = None,
     page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=100)
+    limit: int = Query(20, ge=1, le=100),
 ):
     """
     Get list of AI tasks with filtering and pagination.
     """
     try:
-        # In production, this queries the database
-        # For now, generate sample data from XAI node or mock
-        tasks = []
-
         # Try to get from XAI node
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.get(
                     f"{node_url}/ai/tasks",
                     params={
@@ -43,9 +41,9 @@ async def get_ai_tasks(
                         "ai_model": ai_model,
                         "provider": provider,
                         "page": page,
-                        "limit": limit
+                        "limit": limit,
                     },
-                    timeout=10.0
+                    timeout=10.0,
                 )
                 if response.status_code == 200:
                     return response.json()
@@ -65,17 +63,18 @@ async def get_ai_tasks(
                     "cost_estimate": round(10.5 + i * 0.3, 2),
                     "actual_cost": round(9.8 + i * 0.28, 2) if i % 4 != 0 else None,
                     "compute_time_seconds": 1800 + i * 50 if i % 4 != 0 else None,
-                    "created_at": (datetime.utcnow() - timedelta(hours=i)).isoformat()
+                    "created_at": (datetime.utcnow() - timedelta(hours=i)).isoformat(),
                 }
                 for i in range(20)
             ],
             "total": 156,
             "page": page,
-            "limit": limit
+            "limit": limit,
         }
     except Exception as e:
         logger.error(f"Error fetching AI tasks: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/tasks/{task_id}")
 async def get_ai_task_detail(task_id: str):
@@ -84,7 +83,7 @@ async def get_ai_task_detail(task_id: str):
     Shows complete task lifecycle, results, and compute metrics
     """
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(f"{node_url}/ai/task/{task_id}", timeout=10.0)
             if response.status_code == 200:
                 return response.json()
@@ -111,13 +110,14 @@ async def get_ai_task_detail(task_id: str):
                 "vulnerabilities_found": 3,
                 "critical_issues": 1,
                 "recommendations": 8,
-                "security_score": 87.5
+                "security_score": 87.5,
             },
-            "created_at": (datetime.utcnow() - timedelta(hours=3)).isoformat()
+            "created_at": (datetime.utcnow() - timedelta(hours=3)).isoformat(),
         }
     except Exception as e:
         logger.error(f"Error fetching AI task {task_id}: {e}")
         raise HTTPException(status_code=404, detail="Task not found")
+
 
 @router.get("/models")
 async def get_ai_models():
@@ -125,7 +125,7 @@ async def get_ai_models():
     Get AI model statistics and performance comparison.
     """
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(f"{node_url}/ai/models", timeout=10.0)
             if response.status_code == 200:
                 return response.json()
@@ -141,7 +141,7 @@ async def get_ai_models():
                     "average_compute_time": 2134.5,
                     "average_cost": 15.18,
                     "quality_score": 94.2,
-                    "last_used": datetime.utcnow().isoformat()
+                    "last_used": datetime.utcnow().isoformat(),
                 },
                 {
                     "model_name": "gpt-4-turbo",
@@ -151,7 +151,7 @@ async def get_ai_models():
                     "average_compute_time": 1654.2,
                     "average_cost": 15.07,
                     "quality_score": 91.5,
-                    "last_used": datetime.utcnow().isoformat()
+                    "last_used": datetime.utcnow().isoformat(),
                 },
                 {
                     "model_name": "gemini-pro",
@@ -161,13 +161,14 @@ async def get_ai_models():
                     "average_compute_time": 1823.8,
                     "average_cost": 12.45,
                     "quality_score": 88.7,
-                    "last_used": datetime.utcnow().isoformat()
-                }
+                    "last_used": datetime.utcnow().isoformat(),
+                },
             ]
         }
     except Exception as e:
         logger.error(f"Error fetching AI models: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/stats")
 async def get_ai_stats():
@@ -176,7 +177,7 @@ async def get_ai_stats():
     Network-wide AI compute metrics
     """
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(f"{node_url}/ai/stats", timeout=10.0)
             if response.status_code == 200:
                 return response.json()
@@ -191,7 +192,7 @@ async def get_ai_stats():
             "active_providers": 15,
             "models_in_use": 8,
             "average_task_time": 1798.3,
-            "success_rate": 96.5
+            "success_rate": 96.5,
         }
     except Exception as e:
         logger.error(f"Error fetching AI stats: {e}")

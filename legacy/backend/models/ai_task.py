@@ -1,15 +1,19 @@
-from __future__ import annotations
-
 """
 AI Task models for XAI Explorer
 """
-from pydantic import BaseModel, Field
-from typing import Any
+
+from __future__ import annotations
+
 from datetime import datetime
 from enum import Enum
+from typing import Any
+
+from pydantic import BaseModel
+
 
 class TaskType(str, Enum):
     """AI task types"""
+
     SECURITY_AUDIT = "security_audit"
     CORE_FEATURE = "core_feature"
     BUG_FIX = "bug_fix"
@@ -18,22 +22,28 @@ class TaskType(str, Enum):
     TESTING = "testing"
     DOCUMENTATION = "documentation"
 
+
 class TaskComplexity(str, Enum):
     """Task complexity levels"""
+
     SIMPLE = "simple"
     MODERATE = "moderate"
     COMPLEX = "complex"
     CRITICAL = "critical"
 
+
 class TaskStatus(str, Enum):
     """Task status"""
+
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
     FAILED = "failed"
 
+
 class AITask(BaseModel):
     """AI Task model"""
+
     task_id: str
     task_type: TaskType
     complexity: TaskComplexity
@@ -54,8 +64,10 @@ class AITask(BaseModel):
     error_message: str | None = None
     created_at: datetime
 
+
 class AIProvider(BaseModel):
     """AI Provider model"""
+
     provider_address: str
     provider_name: str | None = None
     registration_date: datetime
@@ -71,8 +83,10 @@ class AIProvider(BaseModel):
     contact_info: dict[str, Any] | None = None
     created_at: datetime
 
+
 class AIModelStats(BaseModel):
     """AI Model statistics"""
+
     model_name: str
     provider: str
     total_tasks: int = 0

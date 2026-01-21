@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """XAI Testnet Explorer API - lightweight proxy for node stats and blocks."""
 
+import logging
 import os
 import time
-import logging
 from typing import Any, Dict, Tuple
 
 import requests
-from flask import Flask, jsonify, request, Response
-from flask_cors import CORS
 from flasgger import Swagger
+from flask import Flask, Response, jsonify, request
+from flask_cors import CORS
 
 try:
-    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+    from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 except Exception:  # pragma: no cover - optional dependency
     generate_latest = None
     CONTENT_TYPE_LATEST = "text/plain; version=0.0.4; charset=utf-8"
@@ -28,15 +28,15 @@ swagger_config = {
     "headers": [],
     "specs": [
         {
-            "endpoint": 'apispec',
-            "route": '/apispec.json',
+            "endpoint": "apispec",
+            "route": "/apispec.json",
             "rule_filter": lambda rule: True,
             "model_filter": lambda tag: True,
         }
     ],
     "static_url_path": "/flasgger_static",
     "swagger_ui": True,
-    "specs_route": "/api/docs"
+    "specs_route": "/api/docs",
 }
 
 swagger_template = {
@@ -44,10 +44,7 @@ swagger_template = {
         "title": "XAI Blockchain Explorer API",
         "description": "API for exploring the XAI AI-powered blockchain - blocks, transactions, addresses, AI tasks, models, and providers",
         "version": "1.0.0",
-        "contact": {
-            "name": "XAI Blockchain",
-            "url": "https://xaiblockchain.com"
-        }
+        "contact": {"name": "XAI Blockchain", "url": "https://xaiblockchain.com"},
     },
     "host": "explorer.xaiblockchain.com",
     "basePath": "/",
@@ -60,8 +57,8 @@ swagger_template = {
         {"name": "Search", "description": "Search endpoints"},
         {"name": "Network", "description": "Network statistics endpoints"},
         {"name": "AI", "description": "AI task and model endpoints"},
-        {"name": "Providers", "description": "Compute provider endpoints"}
-    ]
+        {"name": "Providers", "description": "Compute provider endpoints"},
+    ],
 }
 
 swagger = Swagger(app, config=swagger_config, template=swagger_template)
@@ -121,14 +118,16 @@ def health():
     data, error = fetch_json("/stats")
     healthy = data is not None
     status = "healthy" if healthy else "degraded"
-    return jsonify({
-        "chain": CHAIN_NAME,
-        "node": {"reachable": healthy, "url": NODE_URL},
-        "status": status,
-        "timestamp": time.time(),
-        "version": EXPLORER_VERSION,
-        "error": error if not healthy else None
-    }), (200 if healthy else 503)
+    return jsonify(
+        {
+            "chain": CHAIN_NAME,
+            "node": {"reachable": healthy, "url": NODE_URL},
+            "status": status,
+            "timestamp": time.time(),
+            "version": EXPLORER_VERSION,
+            "error": error if not healthy else None,
+        }
+    ), (200 if healthy else 503)
 
 
 @app.route("/api/stats")
@@ -411,6 +410,7 @@ def metrics():
 # HIGH PRIORITY ENDPOINTS
 # ============================================================================
 
+
 @app.route("/api/address/<address>")
 def api_address(address: str):
     """
@@ -549,25 +549,29 @@ def api_address_transactions(address: str):
 
     transactions = []
     for tx in data.get("transactions", []):
-        transactions.append({
-            "txid": tx.get("txid"),
-            "block": tx.get("block_index"),
-            "timestamp": tx.get("timestamp"),
-            "type": tx.get("tx_type"),
-            "amount": tx.get("amount", 0),
-            "fee": tx.get("fee", 0),
-            "sender": tx.get("sender"),
-            "recipient": tx.get("recipient"),
-            "status": "confirmed" if tx.get("block_index") else "pending",
-        })
+        transactions.append(
+            {
+                "txid": tx.get("txid"),
+                "block": tx.get("block_index"),
+                "timestamp": tx.get("timestamp"),
+                "type": tx.get("tx_type"),
+                "amount": tx.get("amount", 0),
+                "fee": tx.get("fee", 0),
+                "sender": tx.get("sender"),
+                "recipient": tx.get("recipient"),
+                "status": "confirmed" if tx.get("block_index") else "pending",
+            }
+        )
 
-    return jsonify({
-        "address": address,
-        "transactions": transactions,
-        "page": page,
-        "limit": limit,
-        "total": data.get("transaction_count", len(transactions)),
-    })
+    return jsonify(
+        {
+            "address": address,
+            "transactions": transactions,
+            "page": page,
+            "limit": limit,
+            "total": data.get("transaction_count", len(transactions)),
+        }
+    )
 
 
 @app.route("/api/search", methods=["GET", "POST"])
@@ -614,30 +618,57 @@ def api_search():
 
     query = query.strip()
     if not query:
-        return jsonify({"error": "Search query required", "type": None, "result": None}), 400
+        return (
+            jsonify({"error": "Search query required", "type": None, "result": None}),
+            400,
+        )
 
     # Detect search type
     # Block number: purely numeric
     if query.isdigit():
         block_data, err = fetch_json(f"/blocks/{query}")
         if block_data:
-            return jsonify({
-                "type": "block",
-                "query": query,
-                "result": block_data,
-            })
-        return jsonify({"type": "block", "query": query, "result": None, "error": "Block not found"}), 404
+            return jsonify(
+                {
+                    "type": "block",
+                    "query": query,
+                    "result": block_data,
+                }
+            )
+        return (
+            jsonify(
+                {
+                    "type": "block",
+                    "query": query,
+                    "result": None,
+                    "error": "Block not found",
+                }
+            ),
+            404,
+        )
 
     # Transaction hash: 64 hex characters (SHA256)
     if len(query) == 64 and all(c in "0123456789abcdefABCDEF" for c in query):
         tx_data, err = fetch_json(f"/transaction/{query}")
         if tx_data and "error" not in tx_data:
-            return jsonify({
-                "type": "transaction",
-                "query": query,
-                "result": tx_data,
-            })
-        return jsonify({"type": "transaction", "query": query, "result": None, "error": "Transaction not found"}), 404
+            return jsonify(
+                {
+                    "type": "transaction",
+                    "query": query,
+                    "result": tx_data,
+                }
+            )
+        return (
+            jsonify(
+                {
+                    "type": "transaction",
+                    "query": query,
+                    "result": None,
+                    "error": "Transaction not found",
+                }
+            ),
+            404,
+        )
 
     # Address: starts with TXAI or standard format
     if query.startswith("TXAI") or (len(query) >= 26 and len(query) <= 64):
@@ -647,22 +678,49 @@ def api_search():
             result = {
                 "address": query,
                 "balance": balance_data.get("balance", 0),
-                "transaction_count": history_data.get("transaction_count", 0) if history_data else 0,
-                "recent_transactions": history_data.get("transactions", [])[:5] if history_data else [],
+                "transaction_count": (
+                    history_data.get("transaction_count", 0) if history_data else 0
+                ),
+                "recent_transactions": (
+                    history_data.get("transactions", [])[:5] if history_data else []
+                ),
             }
-            return jsonify({
-                "type": "address",
-                "query": query,
-                "result": result,
-            })
-        return jsonify({"type": "address", "query": query, "result": None, "error": "Address not found"}), 404
+            return jsonify(
+                {
+                    "type": "address",
+                    "query": query,
+                    "result": result,
+                }
+            )
+        return (
+            jsonify(
+                {
+                    "type": "address",
+                    "query": query,
+                    "result": None,
+                    "error": "Address not found",
+                }
+            ),
+            404,
+        )
 
-    return jsonify({"type": "unknown", "query": query, "result": None, "error": "Could not identify search type"}), 400
+    return (
+        jsonify(
+            {
+                "type": "unknown",
+                "query": query,
+                "result": None,
+                "error": "Could not identify search type",
+            }
+        ),
+        400,
+    )
 
 
 # ============================================================================
 # MEDIUM PRIORITY ENDPOINTS
 # ============================================================================
+
 
 @app.route("/api/richlist")
 def api_richlist():
@@ -711,19 +769,25 @@ def api_richlist():
         balance_data, _ = fetch_json(f"/balance/{miner_addr}")
         if balance_data:
             balance = balance_data.get("balance", 0)
-            richlist.append({
-                "rank": 1,
-                "address": miner_addr,
-                "balance": balance,
-                "percentage_of_supply": round((balance / total_supply * 100) if total_supply > 0 else 0, 4),
-            })
+            richlist.append(
+                {
+                    "rank": 1,
+                    "address": miner_addr,
+                    "balance": balance,
+                    "percentage_of_supply": round(
+                        (balance / total_supply * 100) if total_supply > 0 else 0, 4
+                    ),
+                }
+            )
 
-    return jsonify({
-        "richlist": richlist,
-        "total_supply": total_supply,
-        "count": len(richlist),
-        "note": "Richlist is limited to known active addresses",
-    })
+    return jsonify(
+        {
+            "richlist": richlist,
+            "total_supply": total_supply,
+            "count": len(richlist),
+            "note": "Richlist is limited to known active addresses",
+        }
+    )
 
 
 @app.route("/api/mempool")
@@ -778,11 +842,13 @@ def api_mempool():
             "active_bans": stats_data.get("mempool_active_bans", 0),
         }
 
-    return jsonify({
-        "pending_count": data.get("count", 0),
-        "transactions": data.get("transactions", []),
-        "mempool_stats": mempool_stats,
-    })
+    return jsonify(
+        {
+            "pending_count": data.get("count", 0),
+            "transactions": data.get("transactions", []),
+            "mempool_stats": mempool_stats,
+        }
+    )
 
 
 @app.route("/api/supply")
@@ -817,12 +883,14 @@ def api_supply():
     if stats_data is None:
         return jsonify({"error": error or "Failed to fetch supply data"}), 503
 
-    return jsonify({
-        "total_supply": stats_data.get("total_circulating_supply", 0),
-        "circulating_supply": stats_data.get("total_circulating_supply", 0),
-        "burned": 0,  # XAI doesn't track burns separately
-        "chain_height": stats_data.get("chain_height", 0),
-    })
+    return jsonify(
+        {
+            "total_supply": stats_data.get("total_circulating_supply", 0),
+            "circulating_supply": stats_data.get("total_circulating_supply", 0),
+            "burned": 0,  # XAI doesn't track burns separately
+            "chain_height": stats_data.get("chain_height", 0),
+        }
+    )
 
 
 @app.route("/api/network")
@@ -875,23 +943,26 @@ def api_network():
     if stats_data is None:
         return jsonify({"error": stats_err or "Failed to fetch network data"}), 503
 
-    return jsonify({
-        "peer_count": stats_data.get("peers", 0),
-        "peers": peers_data.get("peers", []) if peers_data else [],
-        "node_version": "2.0.0",
-        "chain_height": stats_data.get("chain_height", 0),
-        "difficulty": stats_data.get("difficulty", 0),
-        "is_mining": stats_data.get("is_mining", False),
-        "node_uptime": stats_data.get("node_uptime", 0),
-        "latest_block_hash": stats_data.get("latest_block_hash", ""),
-        "orphan_blocks_count": stats_data.get("orphan_blocks_count", 0),
-        "orphan_transactions_count": stats_data.get("orphan_transactions_count", 0),
-    })
+    return jsonify(
+        {
+            "peer_count": stats_data.get("peers", 0),
+            "peers": peers_data.get("peers", []) if peers_data else [],
+            "node_version": "2.0.0",
+            "chain_height": stats_data.get("chain_height", 0),
+            "difficulty": stats_data.get("difficulty", 0),
+            "is_mining": stats_data.get("is_mining", False),
+            "node_uptime": stats_data.get("node_uptime", 0),
+            "latest_block_hash": stats_data.get("latest_block_hash", ""),
+            "orphan_blocks_count": stats_data.get("orphan_blocks_count", 0),
+            "orphan_transactions_count": stats_data.get("orphan_transactions_count", 0),
+        }
+    )
 
 
 # ============================================================================
 # XAI-SPECIFIC AI ENDPOINTS
 # ============================================================================
+
 
 @app.route("/api/ai/tasks")
 def api_ai_tasks():
@@ -937,20 +1008,24 @@ def api_ai_tasks():
     # Check if algorithmic features are enabled
     algo_status, _ = fetch_json("/algo/status")
     if not algo_status or not algo_status.get("enabled", False):
-        return jsonify({
-            "enabled": False,
-            "tasks": [],
-            "total": 0,
-            "message": "AI task features not enabled on this network",
-        })
+        return jsonify(
+            {
+                "enabled": False,
+                "tasks": [],
+                "total": 0,
+                "message": "AI task features not enabled on this network",
+            }
+        )
 
     # If enabled, would query the node for AI tasks
-    return jsonify({
-        "enabled": True,
-        "tasks": [],
-        "total": 0,
-        "features": algo_status.get("features", []),
-    })
+    return jsonify(
+        {
+            "enabled": True,
+            "tasks": [],
+            "total": 0,
+            "features": algo_status.get("features", []),
+        }
+    )
 
 
 @app.route("/api/ai/models")
@@ -998,19 +1073,23 @@ def api_ai_models():
     """
     algo_status, _ = fetch_json("/algo/status")
     if not algo_status or not algo_status.get("enabled", False):
-        return jsonify({
-            "enabled": False,
+        return jsonify(
+            {
+                "enabled": False,
+                "models": [],
+                "total": 0,
+                "message": "AI model registry not enabled on this network",
+            }
+        )
+
+    return jsonify(
+        {
+            "enabled": True,
             "models": [],
             "total": 0,
-            "message": "AI model registry not enabled on this network",
-        })
-
-    return jsonify({
-        "enabled": True,
-        "models": [],
-        "total": 0,
-        "features": algo_status.get("features", []),
-    })
+            "features": algo_status.get("features", []),
+        }
+    )
 
 
 @app.route("/api/providers")
@@ -1057,19 +1136,23 @@ def api_providers():
     if stats_data and stats_data.get("miner_address"):
         # The active miner is a compute provider
         miner_addr = stats_data["miner_address"]
-        providers.append({
-            "address": miner_addr,
-            "capacity": "active",
-            "tasks_completed": stats_data.get("chain_height", 0),  # Blocks mined as proxy
-            "reputation": 100,
-            "is_mining": stats_data.get("is_mining", False),
-        })
+        providers.append(
+            {
+                "address": miner_addr,
+                "capacity": "active",
+                "tasks_completed": stats_data.get("chain_height", 0),  # Blocks mined as proxy
+                "reputation": 100,
+                "is_mining": stats_data.get("is_mining", False),
+            }
+        )
 
-    return jsonify({
-        "providers": providers,
-        "total": len(providers),
-        "ai_features_enabled": algo_status.get("enabled", False) if algo_status else False,
-    })
+    return jsonify(
+        {
+            "providers": providers,
+            "total": len(providers),
+            "ai_features_enabled": (algo_status.get("enabled", False) if algo_status else False),
+        }
+    )
 
 
 if __name__ == "__main__":

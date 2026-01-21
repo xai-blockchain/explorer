@@ -1,10 +1,12 @@
 """
 Governance API endpoints
 """
-from fastapi import APIRouter, Query, HTTPException
-import httpx
-from typing import Optional
+
 from datetime import datetime
+from typing import Optional
+
+import httpx
+from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter()
 
@@ -16,19 +18,19 @@ node_url = "http://localhost:12001"
 async def get_proposals(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    status: Optional[str] = Query(None, description="Filter by status: voting, passed, rejected, all")
+    status: Optional[str] = Query(
+        None, description="Filter by status: voting, passed, rejected, all"
+    ),
 ):
     """Get list of governance proposals with pagination"""
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             params = {"page": page, "limit": limit}
             if status and status != "all":
                 params["status"] = status
 
             response = await client.get(
-                f"{node_url}/governance/proposals",
-                params=params,
-                timeout=10.0
+                f"{node_url}/governance/proposals", params=params, timeout=10.0
             )
             if response.status_code == 200:
                 return response.json()
@@ -38,7 +40,7 @@ async def get_proposals(
                 "proposals": _get_mock_proposals(page, limit, status),
                 "total": 15,
                 "page": page,
-                "limit": limit
+                "limit": limit,
             }
     except Exception as e:
         # Return mock data for development
@@ -47,7 +49,7 @@ async def get_proposals(
             "total": 15,
             "page": page,
             "limit": limit,
-            "error": str(e)
+            "error": str(e),
         }
 
 
@@ -55,10 +57,9 @@ async def get_proposals(
 async def get_proposal(proposal_id: int):
     """Get proposal details by ID"""
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(
-                f"{node_url}/governance/proposals/{proposal_id}",
-                timeout=10.0
+                f"{node_url}/governance/proposals/{proposal_id}", timeout=10.0
             )
             if response.status_code == 200:
                 return response.json()
@@ -70,29 +71,27 @@ async def get_proposal(proposal_id: int):
 
 @router.get("/proposals/{proposal_id}/votes")
 async def get_proposal_votes(
-    proposal_id: int,
-    page: int = Query(1, ge=1),
-    limit: int = Query(50, ge=1, le=100)
+    proposal_id: int, page: int = Query(1, ge=1), limit: int = Query(50, ge=1, le=100)
 ):
     """Get votes for a specific proposal"""
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(
                 f"{node_url}/governance/proposals/{proposal_id}/votes",
                 params={"page": page, "limit": limit},
-                timeout=10.0
+                timeout=10.0,
             )
             if response.status_code == 200:
                 return response.json()
             return {"votes": [], "total": 0, "page": page}
-    except Exception as e:
+    except Exception:
         # Return mock data for development
         return {
             "votes": _get_mock_votes(proposal_id, page, limit),
             "total": 25,
             "page": page,
             "limit": limit,
-            "proposal_id": proposal_id
+            "proposal_id": proposal_id,
         }
 
 
@@ -110,22 +109,24 @@ def _get_mock_proposals(page: int, limit: int, status: Optional[str]):
         if status and status != "all" and prop_status != status:
             continue
 
-        proposals.append({
-            "proposal_id": idx,
-            "title": f"XIP-{idx}: {'Network Upgrade' if idx % 3 == 0 else 'Parameter Change' if idx % 3 == 1 else 'Community Fund'}",
-            "description": f"Proposal #{idx} for improving the XAI network",
-            "status": prop_status,
-            "proposer": f"xai1{'0' * 30}{idx:08d}",
-            "submit_time": datetime.utcnow().isoformat(),
-            "deposit_end_time": datetime.utcnow().isoformat(),
-            "voting_start_time": datetime.utcnow().isoformat(),
-            "voting_end_time": datetime.utcnow().isoformat(),
-            "total_deposit": str(100 + idx * 10),
-            "yes_votes": str(1000 * idx),
-            "no_votes": str(100 * idx),
-            "abstain_votes": str(50 * idx),
-            "no_with_veto_votes": str(10 * idx),
-        })
+        proposals.append(
+            {
+                "proposal_id": idx,
+                "title": f"XIP-{idx}: {'Network Upgrade' if idx % 3 == 0 else 'Parameter Change' if idx % 3 == 1 else 'Community Fund'}",
+                "description": f"Proposal #{idx} for improving the XAI network",
+                "status": prop_status,
+                "proposer": f"xai1{'0' * 30}{idx:08d}",
+                "submit_time": datetime.utcnow().isoformat(),
+                "deposit_end_time": datetime.utcnow().isoformat(),
+                "voting_start_time": datetime.utcnow().isoformat(),
+                "voting_end_time": datetime.utcnow().isoformat(),
+                "total_deposit": str(100 + idx * 10),
+                "yes_votes": str(1000 * idx),
+                "no_votes": str(100 * idx),
+                "abstain_votes": str(50 * idx),
+                "no_with_veto_votes": str(10 * idx),
+            }
+        )
 
     return proposals
 
@@ -168,7 +169,7 @@ These changes will improve throughput and user experience while maintaining secu
             "total_voting_power": str(2000 * proposal_id),
             "quorum_reached": proposal_id % 2 == 0,
             "threshold_reached": proposal_id % 3 != 0,
-        }
+        },
     }
 
 
@@ -182,12 +183,14 @@ def _get_mock_votes(proposal_id: int, page: int, limit: int):
         if idx > 25:
             break
 
-        votes.append({
-            "voter": f"xai1{'a' * 30}{idx:08d}",
-            "proposal_id": proposal_id,
-            "option": options[idx % len(options)],
-            "voting_power": str(100 * idx),
-            "timestamp": datetime.utcnow().isoformat(),
-        })
+        votes.append(
+            {
+                "voter": f"xai1{'a' * 30}{idx:08d}",
+                "proposal_id": proposal_id,
+                "option": options[idx % len(options)],
+                "voting_power": str(100 * idx),
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        )
 
     return votes

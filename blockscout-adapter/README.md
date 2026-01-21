@@ -1,6 +1,7 @@
 # XAI Blockscout RPC Adapter
 
-Translates EVM JSON-RPC calls to XAI blockchain API, enabling Blockscout block explorer integration.
+Translates EVM JSON-RPC calls to XAI blockchain API, enabling Blockscout block
+explorer integration.
 
 ## Quick Start
 
@@ -81,7 +82,7 @@ cd ~/blockscout-adapter
 
 ## Architecture
 
-```
+```text
 ┌─────────────────┐
 │   Blockscout    │
 │    Backend      │

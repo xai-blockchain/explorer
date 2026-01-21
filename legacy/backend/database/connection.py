@@ -1,14 +1,17 @@
-from __future__ import annotations
-
 """
 Database connection management for XAI Explorer
 """
-import asyncpg
-from typing import Any
+
+from __future__ import annotations
+
 import json
 import logging
+from typing import Any, Sequence
+
+import asyncpg
 
 logger = logging.getLogger(__name__)
+
 
 class Database:
     """Async PostgreSQL database connection manager"""
@@ -21,10 +24,7 @@ class Database:
         """Establish database connection pool"""
         try:
             self.pool = await asyncpg.create_pool(
-                self.database_url,
-                min_size=10,
-                max_size=50,
-                command_timeout=60
+                self.database_url, min_size=10, max_size=50, command_timeout=60
             )
             logger.info("Database connection pool created")
         except Exception as e:
@@ -192,7 +192,9 @@ class Database:
         if txs:
             await self.upsert_transactions(txs, block.get("index") or block.get("height"))
 
-    async def upsert_transactions(self, transactions: list[dict[str, Any]], block_height: Any = None) -> None:
+    async def upsert_transactions(
+        self, transactions: list[dict[str, Any]], block_height: Any = None
+    ) -> None:
         """Persist transactions in bulk."""
         if not transactions:
             return
@@ -307,7 +309,9 @@ class Database:
             "DELETE FROM mempool_transactions WHERE last_updated < timezone('utc', now()) - interval '2 hours';"
         )
 
-    async def record_mempool_snapshot(self, stats: dict[str, Any], overview: dict[str, Any] | None = None) -> None:
+    async def record_mempool_snapshot(
+        self, stats: dict[str, Any], overview: dict[str, Any] | None = None
+    ) -> None:
         """Record mempool congestion snapshot for analytics."""
         if not stats and not overview:
             return

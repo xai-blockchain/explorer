@@ -1,13 +1,19 @@
 """Tests for XAI to EVM data translators"""
 
 import pytest
-from src.translators.utils import (
-    to_hex, from_hex, pad_hex, xai_hash_to_evm, xai_address_to_evm,
-    wei_to_xai, xai_to_wei, timestamp_to_hex
-)
+from src.translators.accounts import get_balance_response, get_transaction_count
 from src.translators.blocks import translate_block, translate_block_number
 from src.translators.transactions import translate_transaction, translate_transaction_receipt
-from src.translators.accounts import get_balance_response, get_transaction_count
+from src.translators.utils import (
+    from_hex,
+    pad_hex,
+    timestamp_to_hex,
+    to_hex,
+    wei_to_xai,
+    xai_address_to_evm,
+    xai_hash_to_evm,
+    xai_to_wei,
+)
 
 
 class TestUtils:
@@ -86,7 +92,7 @@ class TestBlockTranslator:
             "previous_hash": "def456",
             "timestamp": 1704067200,
             "miner": "0x" + "1" * 40,
-            "transactions": []
+            "transactions": [],
         }
 
         result = translate_block(xai_block)
@@ -104,10 +110,7 @@ class TestBlockTranslator:
             "previous_hash": "def456",
             "timestamp": 1704067200,
             "miner": "0x" + "1" * 40,
-            "transactions": [
-                {"txid": "tx1"},
-                {"txid": "tx2"}
-            ]
+            "transactions": [{"txid": "tx1"}, {"txid": "tx2"}],
         }
 
         result = translate_block(xai_block, include_txs=False)
@@ -135,7 +138,7 @@ class TestTransactionTranslator:
             "recipient": "0x" + "2" * 40,
             "amount": 1.5,
             "fee": 0.001,
-            "nonce": 5
+            "nonce": 5,
         }
 
         result = translate_transaction(xai_tx, block_height=100, tx_index=0)
@@ -153,12 +156,9 @@ class TestTransactionTranslator:
             "txid": "tx123",
             "sender": "0x" + "1" * 40,
             "recipient": "0x" + "2" * 40,
-            "confirmed": True
+            "confirmed": True,
         }
-        xai_block = {
-            "height": 100,
-            "hash": "block123"
-        }
+        xai_block = {"height": 100, "hash": "block123"}
 
         result = translate_transaction_receipt(xai_tx, xai_block)
 

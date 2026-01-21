@@ -3,7 +3,6 @@ Utility functions for EVM data format conversion
 """
 
 import hashlib
-from typing import Any
 
 
 def to_hex(value: int) -> str:

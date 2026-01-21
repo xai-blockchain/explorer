@@ -1,7 +1,8 @@
 """Tests for JSON-RPC handler"""
 
+from unittest.mock import AsyncMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 from src.rpc_handler import RPCHandler, RPCRequest
 
 
@@ -18,19 +19,19 @@ def mock_xai_client():
         "previous_hash": "def456",
         "timestamp": 1704067200,
         "miner": "0x" + "1" * 40,
-        "transactions": []
+        "transactions": [],
     }
     client.get_transaction.return_value = {
         "txid": "tx123",
         "sender": "0x" + "1" * 40,
         "recipient": "0x" + "2" * 40,
         "amount": 1.0,
-        "block_height": 100
+        "block_height": 100,
     }
     client.get_address.return_value = {
         "address": "0x" + "1" * 40,
         "balance": 100.0,
-        "nonce": 5
+        "nonce": 5,
     }
     client.get_peers.return_value = [{"id": "peer1"}, {"id": "peer2"}]
 
@@ -59,11 +60,7 @@ class TestBlockMethods:
     @pytest.mark.asyncio
     async def test_eth_get_block_by_number_latest(self, rpc_handler, mock_xai_client):
         """Test eth_getBlockByNumber with 'latest'"""
-        request = RPCRequest(
-            method="eth_getBlockByNumber",
-            params=["latest", False],
-            id=1
-        )
+        request = RPCRequest(method="eth_getBlockByNumber", params=["latest", False], id=1)
         response = await rpc_handler.handle(request)
 
         assert response.error is None
@@ -73,11 +70,7 @@ class TestBlockMethods:
     @pytest.mark.asyncio
     async def test_eth_get_block_by_number_hex(self, rpc_handler, mock_xai_client):
         """Test eth_getBlockByNumber with hex number"""
-        request = RPCRequest(
-            method="eth_getBlockByNumber",
-            params=["0x64", False],
-            id=1
-        )
+        request = RPCRequest(method="eth_getBlockByNumber", params=["0x64", False], id=1)
         response = await rpc_handler.handle(request)
 
         assert response.error is None
@@ -86,11 +79,7 @@ class TestBlockMethods:
     @pytest.mark.asyncio
     async def test_eth_get_block_by_hash(self, rpc_handler, mock_xai_client):
         """Test eth_getBlockByHash"""
-        request = RPCRequest(
-            method="eth_getBlockByHash",
-            params=["0x" + "a" * 64, False],
-            id=1
-        )
+        request = RPCRequest(method="eth_getBlockByHash", params=["0x" + "a" * 64, False], id=1)
         response = await rpc_handler.handle(request)
 
         assert response.error is None
@@ -102,11 +91,7 @@ class TestTransactionMethods:
     @pytest.mark.asyncio
     async def test_eth_get_transaction_by_hash(self, rpc_handler, mock_xai_client):
         """Test eth_getTransactionByHash"""
-        request = RPCRequest(
-            method="eth_getTransactionByHash",
-            params=["0x" + "a" * 64],
-            id=1
-        )
+        request = RPCRequest(method="eth_getTransactionByHash", params=["0x" + "a" * 64], id=1)
         response = await rpc_handler.handle(request)
 
         assert response.error is None
@@ -116,11 +101,7 @@ class TestTransactionMethods:
     @pytest.mark.asyncio
     async def test_eth_get_transaction_receipt(self, rpc_handler, mock_xai_client):
         """Test eth_getTransactionReceipt"""
-        request = RPCRequest(
-            method="eth_getTransactionReceipt",
-            params=["0x" + "a" * 64],
-            id=1
-        )
+        request = RPCRequest(method="eth_getTransactionReceipt", params=["0x" + "a" * 64], id=1)
         response = await rpc_handler.handle(request)
 
         assert response.error is None
@@ -134,11 +115,7 @@ class TestAccountMethods:
     @pytest.mark.asyncio
     async def test_eth_get_balance(self, rpc_handler, mock_xai_client):
         """Test eth_getBalance"""
-        request = RPCRequest(
-            method="eth_getBalance",
-            params=["0x" + "1" * 40, "latest"],
-            id=1
-        )
+        request = RPCRequest(method="eth_getBalance", params=["0x" + "1" * 40, "latest"], id=1)
         response = await rpc_handler.handle(request)
 
         assert response.error is None
@@ -148,11 +125,7 @@ class TestAccountMethods:
     @pytest.mark.asyncio
     async def test_eth_get_transaction_count(self, rpc_handler, mock_xai_client):
         """Test eth_getTransactionCount"""
-        request = RPCRequest(
-            method="eth_getTransactionCount",
-            params=["0x" + "1" * 40],
-            id=1
-        )
+        request = RPCRequest(method="eth_getTransactionCount", params=["0x" + "1" * 40], id=1)
         response = await rpc_handler.handle(request)
 
         assert response.error is None
@@ -161,11 +134,7 @@ class TestAccountMethods:
     @pytest.mark.asyncio
     async def test_eth_get_code(self, rpc_handler):
         """Test eth_getCode (should return empty for XAI)"""
-        request = RPCRequest(
-            method="eth_getCode",
-            params=["0x" + "1" * 40, "latest"],
-            id=1
-        )
+        request = RPCRequest(method="eth_getCode", params=["0x" + "1" * 40, "latest"], id=1)
         response = await rpc_handler.handle(request)
 
         assert response.error is None

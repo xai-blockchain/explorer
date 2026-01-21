@@ -2,7 +2,6 @@
 Account/Address data translation: XAI format -> EVM format
 """
 
-from typing import Any
 from .utils import to_hex, xai_address_to_evm, xai_to_wei
 
 

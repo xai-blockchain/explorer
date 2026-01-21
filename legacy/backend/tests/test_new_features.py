@@ -5,23 +5,21 @@ governance, staking, validators, analytics, WebSocket, and rich list features.
 """
 
 import sys
-from pathlib import Path
-import asyncio
 from datetime import datetime
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-import httpx
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from api import governance, staking, analytics, blockchain, ai_tasks, providers
-
+from api import ai_tasks, analytics, blockchain, governance, providers, staking
 
 # ==================== FIXTURES ====================
+
 
 @pytest.fixture
 def app():
@@ -43,6 +41,7 @@ def client(app):
 
 
 # ==================== GOVERNANCE ENDPOINT TESTS ====================
+
 
 class TestGovernanceEndpoints:
     """Test governance API endpoints"""
@@ -119,6 +118,7 @@ class TestGovernanceEndpoints:
 
 # ==================== STAKING ENDPOINT TESTS ====================
 
+
 class TestStakingEndpoints:
     """Test staking API endpoints"""
 
@@ -167,6 +167,7 @@ class TestStakingEndpoints:
 
 # ==================== VALIDATORS ENDPOINT TESTS ====================
 
+
 class TestValidatorsEndpoints:
     """Test validators API endpoints"""
 
@@ -188,6 +189,7 @@ class TestValidatorsEndpoints:
 
 
 # ==================== ANALYTICS ENDPOINT TESTS ====================
+
 
 class TestAnalyticsEndpoints:
     """Test analytics API endpoints"""
@@ -249,6 +251,7 @@ class TestAnalyticsEndpoints:
 
 # ==================== RICH LIST ENDPOINT TESTS ====================
 
+
 class TestRichListEndpoints:
     """Test rich list API endpoints"""
 
@@ -269,6 +272,7 @@ class TestRichListEndpoints:
 
 # ==================== WEBSOCKET TESTS ====================
 
+
 class TestWebSocketFeatures:
     """Test WebSocket functionality"""
 
@@ -287,6 +291,7 @@ class TestWebSocketFeatures:
 
 
 # ==================== INTEGRATION TESTS ====================
+
 
 class TestFeatureIntegration:
     """Integration tests for new features"""
@@ -342,6 +347,7 @@ class TestFeatureIntegration:
 
 # ==================== ERROR HANDLING TESTS ====================
 
+
 class TestErrorHandling:
     """Test error handling in new endpoints"""
 
@@ -363,6 +369,7 @@ class TestErrorHandling:
 
 
 # ==================== DATA QUALITY TESTS ====================
+
 
 class TestDataQuality:
     """Test data quality and format"""
@@ -416,6 +423,7 @@ class TestDataQuality:
 
 # ==================== ASYNC FUNCTIONALITY TESTS ====================
 
+
 class TestAsyncFunctionality:
     """Test async functionality"""
 
@@ -446,6 +454,7 @@ class TestAsyncFunctionality:
 
 
 # ==================== CORE BLOCKCHAIN TESTS ====================
+
 
 class TestBlockchainEndpoints:
     """Test core blockchain API endpoints"""
@@ -486,6 +495,7 @@ class TestBlockchainEndpoints:
 
 
 # ==================== AI TASKS TESTS ====================
+
 
 class TestAITasksEndpoints:
     """Test AI tasks API endpoints"""
@@ -534,6 +544,7 @@ class TestAITasksEndpoints:
 
 # ==================== PROVIDERS TESTS ====================
 
+
 class TestProvidersEndpoints:
     """Test providers API endpoints"""
 
@@ -571,6 +582,7 @@ class TestProvidersEndpoints:
 
 
 # ==================== EXTENDED ANALYTICS TESTS ====================
+
 
 class TestExtendedAnalyticsEndpoints:
     """Test extended analytics endpoints"""

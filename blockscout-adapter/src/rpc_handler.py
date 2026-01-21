@@ -4,18 +4,14 @@ Routes JSON-RPC calls to appropriate XAI client methods
 """
 
 import logging
-from typing import Any, Callable
 from dataclasses import dataclass
+from typing import Any, Callable
 
-from .xai_client import XAIClient
+from .translators.accounts import get_balance_response, get_code_response, get_transaction_count
 from .translators.blocks import translate_block, translate_block_number
-from .translators.transactions import (
-    translate_transaction, translate_transaction_receipt
-)
-from .translators.accounts import (
-    get_balance_response, get_transaction_count, get_code_response
-)
-from .translators.utils import to_hex, xai_hash_to_evm
+from .translators.transactions import translate_transaction, translate_transaction_receipt
+from .translators.utils import to_hex
+from .xai_client import XAIClient
 
 logger = logging.getLogger(__name__)
 
@@ -66,30 +62,23 @@ class RPCHandler:
             "eth_blockNumber": self._eth_block_number,
             "eth_getBlockByNumber": self._eth_get_block_by_number,
             "eth_getBlockByHash": self._eth_get_block_by_hash,
-
             # Transaction methods
             "eth_getTransactionByHash": self._eth_get_transaction_by_hash,
             "eth_getTransactionReceipt": self._eth_get_transaction_receipt,
-            "eth_getTransactionByBlockNumberAndIndex":
-                self._eth_get_tx_by_block_and_index,
-
+            "eth_getTransactionByBlockNumberAndIndex": self._eth_get_tx_by_block_and_index,
             # Account methods
             "eth_getBalance": self._eth_get_balance,
             "eth_getTransactionCount": self._eth_get_transaction_count,
             "eth_getCode": self._eth_get_code,
-
             # Chain info
             "eth_chainId": self._eth_chain_id,
             "eth_gasPrice": self._eth_gas_price,
             "net_version": self._net_version,
             "web3_clientVersion": self._web3_client_version,
-
             # Sync status
             "eth_syncing": self._eth_syncing,
-
             # Logs (empty for MVP)
             "eth_getLogs": self._eth_get_logs,
-
             # Additional methods for Blockscout compatibility
             "eth_getBlockTransactionCountByNumber": self._eth_get_block_tx_count_by_number,
             "eth_getBlockTransactionCountByHash": self._eth_get_block_tx_count_by_hash,
@@ -111,10 +100,7 @@ class RPCHandler:
             return RPCResponse(
                 result=None,
                 id=request.id,
-                error={
-                    "code": -32601,
-                    "message": f"Method not found: {method}"
-                }
+                error={"code": -32601, "message": f"Method not found: {method}"},
             )
 
         try:
@@ -123,12 +109,7 @@ class RPCHandler:
         except Exception as e:
             logger.error(f"RPC error for {method}: {e}")
             return RPCResponse(
-                result=None,
-                id=request.id,
-                error={
-                    "code": -32000,
-                    "message": str(e)
-                }
+                result=None, id=request.id, error={"code": -32000, "message": str(e)}
             )
 
     # === Block Methods ===

@@ -1,12 +1,13 @@
 """
 Analytics API endpoints - Network and AI usage analytics
 """
-from fastapi import APIRouter, Query, HTTPException
-from datetime import datetime, timedelta
-import httpx
+
 import logging
-from typing import List, Dict, Any
 import random
+from datetime import datetime, timedelta
+
+import httpx
+from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -15,19 +16,17 @@ node_url = "http://localhost:12001"
 
 
 @router.get("/transactions")
-async def get_transaction_analytics(
-    period: str = Query("24h", regex="^(1h|24h|7d|30d)$")
-):
+async def get_transaction_analytics(period: str = Query("24h", regex="^(1h|24h|7d|30d)$")):
     """
     Get transaction volume analytics over time.
     Returns time-series data suitable for charts.
     """
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(
                 f"{node_url}/analytics/transactions",
                 params={"period": period},
-                timeout=10.0
+                timeout=10.0,
             )
             if response.status_code == 200:
                 return response.json()
@@ -35,8 +34,6 @@ async def get_transaction_analytics(
         pass
 
     # Generate sample transaction analytics data
-    hours = {"1h": 1, "24h": 24, "7d": 168, "30d": 720}[period]
-
     if period == "1h":
         interval_minutes = 5
         data_points = 12
@@ -55,14 +52,16 @@ async def get_transaction_analytics(
 
     for i in range(data_points):
         timestamp = base_time - timedelta(minutes=interval_minutes * (data_points - 1 - i))
-        timeline.append({
-            "timestamp": timestamp.isoformat(),
-            "transaction_count": random.randint(50, 200),
-            "volume": round(random.uniform(1000, 5000), 2),
-            "ai_transactions": random.randint(10, 50),
-            "transfer_transactions": random.randint(30, 120),
-            "contract_transactions": random.randint(5, 30),
-        })
+        timeline.append(
+            {
+                "timestamp": timestamp.isoformat(),
+                "transaction_count": random.randint(50, 200),
+                "volume": round(random.uniform(1000, 5000), 2),
+                "ai_transactions": random.randint(10, 50),
+                "transfer_transactions": random.randint(30, 120),
+                "contract_transactions": random.randint(5, 30),
+            }
+        )
 
     return {
         "period": period,
@@ -70,26 +69,24 @@ async def get_transaction_analytics(
         "summary": {
             "total_transactions": sum(d["transaction_count"] for d in timeline),
             "total_volume": round(sum(d["volume"] for d in timeline), 2),
-            "avg_transactions_per_interval": round(sum(d["transaction_count"] for d in timeline) / len(timeline), 1),
+            "avg_transactions_per_interval": round(
+                sum(d["transaction_count"] for d in timeline) / len(timeline), 1
+            ),
             "peak_transactions": max(d["transaction_count"] for d in timeline),
-        }
+        },
     }
 
 
 @router.get("/blocks")
-async def get_block_analytics(
-    period: str = Query("24h", regex="^(1h|24h|7d|30d)$")
-):
+async def get_block_analytics(period: str = Query("24h", regex="^(1h|24h|7d|30d)$")):
     """
     Get block production analytics over time.
     Returns time-series data for block metrics.
     """
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(
-                f"{node_url}/analytics/blocks",
-                params={"period": period},
-                timeout=10.0
+                f"{node_url}/analytics/blocks", params={"period": period}, timeout=10.0
             )
             if response.status_code == 200:
                 return response.json()
@@ -97,8 +94,6 @@ async def get_block_analytics(
         pass
 
     # Generate sample block analytics data
-    hours = {"1h": 1, "24h": 24, "7d": 168, "30d": 720}[period]
-
     if period == "1h":
         interval_minutes = 5
         data_points = 12
@@ -122,14 +117,16 @@ async def get_block_analytics(
         actual_blocks = blocks_in_interval + random.randint(-2, 2)
         avg_block_time = (interval_minutes * 60) / max(actual_blocks, 1)
 
-        timeline.append({
-            "timestamp": timestamp.isoformat(),
-            "blocks_produced": actual_blocks,
-            "avg_block_time": round(avg_block_time, 1),
-            "avg_transactions_per_block": round(random.uniform(3, 12), 1),
-            "difficulty": 2400000 + random.randint(-50000, 50000),
-            "avg_block_size": random.randint(800, 2000),
-        })
+        timeline.append(
+            {
+                "timestamp": timestamp.isoformat(),
+                "blocks_produced": actual_blocks,
+                "avg_block_time": round(avg_block_time, 1),
+                "avg_transactions_per_block": round(random.uniform(3, 12), 1),
+                "difficulty": 2400000 + random.randint(-50000, 50000),
+                "avg_block_size": random.randint(800, 2000),
+            }
+        )
 
     return {
         "period": period,
@@ -138,24 +135,24 @@ async def get_block_analytics(
             "total_blocks": sum(d["blocks_produced"] for d in timeline),
             "avg_block_time": round(sum(d["avg_block_time"] for d in timeline) / len(timeline), 1),
             "avg_difficulty": round(sum(d["difficulty"] for d in timeline) / len(timeline), 0),
-            "total_transactions": sum(int(d["blocks_produced"] * d["avg_transactions_per_block"]) for d in timeline),
-        }
+            "total_transactions": sum(
+                int(d["blocks_produced"] * d["avg_transactions_per_block"]) for d in timeline
+            ),
+        },
     }
 
 
 @router.get("/addresses")
-async def get_address_analytics(
-    period: str = Query("24h", regex="^(1h|24h|7d|30d)$")
-):
+async def get_address_analytics(period: str = Query("24h", regex="^(1h|24h|7d|30d)$")):
     """
     Get active address analytics over time.
     """
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(
                 f"{node_url}/analytics/addresses",
                 params={"period": period},
-                timeout=10.0
+                timeout=10.0,
             )
             if response.status_code == 200:
                 return response.json()
@@ -182,13 +179,15 @@ async def get_address_analytics(
     for i in range(data_points):
         timestamp = base_time - timedelta(minutes=interval_minutes * (data_points - 1 - i))
         active = random.randint(80, 250)
-        timeline.append({
-            "timestamp": timestamp.isoformat(),
-            "active_addresses": active,
-            "new_addresses": random.randint(5, 30),
-            "unique_senders": random.randint(40, active),
-            "unique_receivers": random.randint(50, active),
-        })
+        timeline.append(
+            {
+                "timestamp": timestamp.isoformat(),
+                "active_addresses": active,
+                "new_addresses": random.randint(5, 30),
+                "unique_senders": random.randint(40, active),
+                "unique_receivers": random.randint(50, active),
+            }
+        )
 
     return {
         "period": period,
@@ -198,25 +197,22 @@ async def get_address_analytics(
             "total_new": sum(d["new_addresses"] for d in timeline),
             "peak_active": max(d["active_addresses"] for d in timeline),
             "avg_active": round(sum(d["active_addresses"] for d in timeline) / len(timeline), 0),
-        }
+        },
     }
 
 
 @router.get("/richlist")
-async def get_rich_list(
-    limit: int = Query(100, ge=1, le=500),
-    offset: int = Query(0, ge=0)
-):
+async def get_rich_list(limit: int = Query(100, ge=1, le=500), offset: int = Query(0, ge=0)):
     """
     Get list of top XAI holders (rich list).
     Returns addresses sorted by balance.
     """
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(
                 f"{node_url}/richlist",
                 params={"limit": limit, "offset": offset},
-                timeout=10.0
+                timeout=10.0,
             )
             if response.status_code == 200:
                 return response.json()
@@ -244,14 +240,18 @@ async def get_rich_list(
 
         percentage = (balance / total_supply) * 100
 
-        holders.append({
-            "rank": rank,
-            "address": f"XAI{random.randint(1000, 9999)}{''.join(random.choices('abcdef0123456789', k=8))}...",
-            "balance": round(balance, 2),
-            "percentage": round(percentage, 4),
-            "transaction_count": random.randint(10, 5000),
-            "last_active": (datetime.utcnow() - timedelta(hours=random.randint(0, 168))).isoformat(),
-        })
+        holders.append(
+            {
+                "rank": rank,
+                "address": f"XAI{random.randint(1000, 9999)}{''.join(random.choices('abcdef0123456789', k=8))}...",
+                "balance": round(balance, 2),
+                "percentage": round(percentage, 4),
+                "transaction_count": random.randint(10, 5000),
+                "last_active": (
+                    datetime.utcnow() - timedelta(hours=random.randint(0, 168))
+                ).isoformat(),
+            }
+        )
 
     # Sort by balance descending
     holders.sort(key=lambda x: x["balance"], reverse=True)
@@ -276,7 +276,7 @@ async def get_network_stats():
     Blockchain metrics: blocks, transactions, addresses
     """
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(f"{node_url}/stats", timeout=10.0)
             if response.status_code == 200:
                 return response.json()
@@ -290,13 +290,10 @@ async def get_network_stats():
                 "avg_block_time": 120.5,
                 "network_hashrate": "1.5 TH/s",
                 "difficulty": 2456789,
-                "total_supply": "45250000.00"
+                "total_supply": "45250000.00",
             },
-            "mempool": {
-                "pending_transactions": 23,
-                "total_size_kb": 145.2
-            },
-            "updated_at": datetime.utcnow().isoformat()
+            "mempool": {"pending_transactions": 23, "total_size_kb": 145.2},
+            "updated_at": datetime.utcnow().isoformat(),
         }
     except Exception as e:
         logger.error(f"Error fetching network stats: {e}")
@@ -304,18 +301,14 @@ async def get_network_stats():
 
 
 @router.get("/ai")
-async def get_ai_analytics(
-    period: str = Query("24h", regex="^(1h|24h|7d|30d|all)$")
-):
+async def get_ai_analytics(period: str = Query("24h", regex="^(1h|24h|7d|30d|all)$")):
     """
     Get AI usage analytics over time.
     """
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(
-                f"{node_url}/ai/analytics",
-                params={"period": period},
-                timeout=10.0
+                f"{node_url}/ai/analytics", params={"period": period}, timeout=10.0
             )
             if response.status_code == 200:
                 return response.json()
@@ -326,13 +319,15 @@ async def get_ai_analytics(
 
         timeline_data = []
         for i in range(0, hours, interval):
-            timeline_data.append({
-                "timestamp": (datetime.utcnow() - timedelta(hours=hours-i)).isoformat(),
-                "tasks_created": 5 + (i % 8),
-                "tasks_completed": 4 + (i % 7),
-                "compute_cost": round(50.0 + (i % 20) * 2.5, 2),
-                "active_providers": 10 + (i % 5)
-            })
+            timeline_data.append(
+                {
+                    "timestamp": (datetime.utcnow() - timedelta(hours=hours - i)).isoformat(),
+                    "tasks_created": 5 + (i % 8),
+                    "tasks_completed": 4 + (i % 7),
+                    "compute_cost": round(50.0 + (i % 20) * 2.5, 2),
+                    "active_providers": 10 + (i % 5),
+                }
+            )
 
         return {
             "period": period,
@@ -340,7 +335,8 @@ async def get_ai_analytics(
                 "total_tasks": sum(d["tasks_created"] for d in timeline_data),
                 "completed_tasks": sum(d["tasks_completed"] for d in timeline_data),
                 "total_compute_cost": sum(d["compute_cost"] for d in timeline_data),
-                "average_providers": sum(d["active_providers"] for d in timeline_data) // len(timeline_data)
+                "average_providers": sum(d["active_providers"] for d in timeline_data)
+                // len(timeline_data),
             },
             "timeline": timeline_data,
             "task_types": [
@@ -348,14 +344,14 @@ async def get_ai_analytics(
                 {"type": "core_feature", "count": 123, "percentage": 27.6},
                 {"type": "bug_fix", "count": 89, "percentage": 19.9},
                 {"type": "optimization", "count": 67, "percentage": 15.0},
-                {"type": "other", "count": 22, "percentage": 5.0}
+                {"type": "other", "count": 22, "percentage": 5.0},
             ],
             "model_usage": [
                 {"model": "claude-opus-4", "tasks": 542, "percentage": 43.5},
                 {"model": "gpt-4-turbo", "tasks": 387, "percentage": 31.0},
                 {"model": "gemini-pro", "tasks": 298, "percentage": 23.9},
-                {"model": "others", "tasks": 20, "percentage": 1.6}
-            ]
+                {"model": "others", "tasks": 20, "percentage": 1.6},
+            ],
         }
     except Exception as e:
         logger.error(f"Error fetching AI analytics: {e}")
@@ -363,19 +359,17 @@ async def get_ai_analytics(
 
 
 @router.get("/providers")
-async def get_provider_analytics(
-    period: str = Query("7d", regex="^(24h|7d|30d|all)$")
-):
+async def get_provider_analytics(period: str = Query("7d", regex="^(24h|7d|30d|all)$")):
     """
     Get provider performance analytics
     Track provider network health and competition
     """
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(
                 f"{node_url}/ai/providers/analytics",
                 params={"period": period},
-                timeout=10.0
+                timeout=10.0,
             )
             if response.status_code == 200:
                 return response.json()
@@ -386,19 +380,19 @@ async def get_provider_analytics(
                 "total_providers": 15,
                 "active_providers": 13,
                 "new_providers": 2,
-                "churned_providers": 1
+                "churned_providers": 1,
             },
             "performance_distribution": [
                 {"range": "90-100%", "providers": 5, "label": "Excellent"},
                 {"range": "80-90%", "providers": 6, "label": "Good"},
                 {"range": "70-80%", "providers": 2, "label": "Fair"},
-                {"range": "Below 70%", "providers": 2, "label": "Poor"}
+                {"range": "Below 70%", "providers": 2, "label": "Poor"},
             ],
             "earnings_distribution": [
                 {"range": "$10k+", "providers": 3},
                 {"range": "$5k-$10k", "providers": 5},
                 {"range": "$1k-$5k", "providers": 4},
-                {"range": "Below $1k", "providers": 3}
+                {"range": "Below $1k", "providers": 3},
             ],
             "top_performers": [
                 {
@@ -406,16 +400,16 @@ async def get_provider_analytics(
                     "name": "AI Compute Pro 1",
                     "tasks": 1247,
                     "earnings": 18542.75,
-                    "success_rate": 98.2
+                    "success_rate": 98.2,
                 },
                 {
                     "provider": "XAI5002...",
                     "name": "AI Compute Pro 2",
                     "tasks": 1197,
                     "earnings": 18042.75,
-                    "success_rate": 97.8
-                }
-            ]
+                    "success_rate": 97.8,
+                },
+            ],
         }
     except Exception as e:
         logger.error(f"Error fetching provider analytics: {e}")

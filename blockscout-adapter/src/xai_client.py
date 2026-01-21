@@ -5,12 +5,13 @@ Supports multiple nodes with health-based load balancing and automatic failover
 """
 
 import asyncio
-import httpx
-import time
-import random
-from typing import Any, Optional
-from dataclasses import dataclass, field
 import logging
+import random
+import time
+from dataclasses import dataclass, field
+from typing import Optional
+
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class NodeHealth:
     """Track health status of a single node"""
+
     url: str
     is_healthy: bool = True
     last_check: float = 0
@@ -47,11 +49,11 @@ class NodeHealth:
 @dataclass
 class XAIClientConfig:
     """Configuration for multi-node XAI client"""
+
     # List of node URLs (supports multiple sentries)
-    node_urls: list[str] = field(default_factory=lambda: [
-        "http://127.0.0.1:12570",
-        "http://127.0.0.1:12571"
-    ])
+    node_urls: list[str] = field(
+        default_factory=lambda: ["http://127.0.0.1:12570", "http://127.0.0.1:12571"]
+    )
     timeout: float = 30.0
     max_retries: int = 3
     health_check_interval: float = 30.0  # seconds between health checks
@@ -137,12 +139,10 @@ class XAIClient:
             response_time = (time.time() - start) * 1000
 
             node.mark_success(
-                response_time_ms=response_time,
-                chain_height=data.get("chain_height", 0)
+                response_time_ms=response_time, chain_height=data.get("chain_height", 0)
             )
             logger.debug(
-                f"Node {url} healthy: height={node.chain_height}, "
-                f"latency={response_time:.0f}ms"
+                f"Node {url} healthy: height={node.chain_height}, " f"latency={response_time:.0f}ms"
             )
         except Exception as e:
             node.mark_failure(str(e))
@@ -179,14 +179,12 @@ class XAIClient:
         """Get nodes ordered by preference for failover"""
         # Start with selected node, then healthy nodes, then unhealthy
         selected = self._select_node()
-        healthy = [n.url for n in self._nodes.values()
-                   if n.is_healthy and n.url != selected]
+        healthy = [n.url for n in self._nodes.values() if n.is_healthy and n.url != selected]
         unhealthy = [n.url for n in self._nodes.values() if not n.is_healthy]
 
         return [selected] + healthy + unhealthy
 
-    async def _request(self, endpoint: str, method: str = "GET",
-                       data: dict = None) -> dict:
+    async def _request(self, endpoint: str, method: str = "GET", data: dict = None) -> dict:
         """Make request with automatic failover across all nodes"""
         urls = self._get_ordered_nodes()
         last_error = None
@@ -229,7 +227,7 @@ class XAIClient:
                 "response_time_ms": round(node.response_time_ms, 2),
                 "consecutive_failures": node.consecutive_failures,
                 "last_error": node.last_error,
-                "last_check": node.last_check
+                "last_check": node.last_check,
             }
             for node in self._nodes.values()
         ]
@@ -265,12 +263,9 @@ class XAIClient:
         """Get address info including balance"""
         return await self._request(f"/address/{address}")
 
-    async def get_address_transactions(self, address: str,
-                                       limit: int = 100) -> list[dict]:
+    async def get_address_transactions(self, address: str, limit: int = 100) -> list[dict]:
         """Get transactions for an address"""
-        return await self._request(
-            f"/address/{address}/transactions?limit={limit}"
-        )
+        return await self._request(f"/address/{address}/transactions?limit={limit}")
 
     async def get_mempool(self) -> dict:
         """Get pending transactions"""

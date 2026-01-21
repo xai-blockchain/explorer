@@ -5,17 +5,19 @@ from __future__ import annotations
 import hmac
 import logging
 import os
-from typing import Any, Callable
+from typing import Any, Callable, Iterable, Sequence
 
 from fastapi import Depends, Header, HTTPException, Query, WebSocket, status
 
 logger = logging.getLogger(__name__)
+
 
 class APIKeyAuthError(RuntimeError):
     """Raised when API key validation fails."""
 
     def __init__(self, message: str = "Invalid or missing API key") -> None:
         super().__init__(message)
+
 
 class APIAuthConfig:
     """Configuration wrapper for API authentication settings."""
@@ -75,6 +77,7 @@ class APIAuthConfig:
                 return True
         return False
 
+
 def build_api_key_dependency(config: APIAuthConfig) -> Callable:
     """Return a FastAPI dependency that enforces API key authentication."""
 
@@ -91,12 +94,14 @@ def build_api_key_dependency(config: APIAuthConfig) -> Callable:
 
     return _dependency
 
+
 async def enforce_websocket_api_key(websocket: WebSocket, config: APIAuthConfig) -> None:
     """Validate API key for websocket connections before accepting."""
     presented_key = websocket.headers.get("x-api-key") or websocket.query_params.get("api_key")
     if not config.validate(presented_key):
         await websocket.close(code=1008)
         raise APIKeyAuthError("Invalid or missing API key for websocket channel")
+
 
 def optional_dependencies(config: APIAuthConfig) -> list[Any]:
     """Helper returning a dependency list for FastAPI route registration."""

@@ -1,29 +1,33 @@
-from __future__ import annotations
-
 """
 XAI Blockchain Explorer - FastAPI Backend
 Production-grade API with AI-specific features
 """
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.encoders import jsonable_encoder
-from contextlib import asynccontextmanager
+from __future__ import annotations
+
 import logging
 import os
+from contextlib import asynccontextmanager
 from typing import Any
 
-from api import blockchain, ai_tasks, providers, analytics, governance, staking
-from services.indexer import BlockchainIndexer
-from services.ai_service import AITaskService
+from api import ai_tasks, analytics, blockchain, governance, providers, staking
 from database.connection import Database
-from security import APIAuthConfig, APIKeyAuthError, enforce_websocket_api_key, optional_dependencies
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.encoders import jsonable_encoder
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from security import (
+    APIAuthConfig,
+    APIKeyAuthError,
+    enforce_websocket_api_key,
+    optional_dependencies,
+)
+from services.ai_service import AITaskService
+from services.indexer import BlockchainIndexer
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -31,6 +35,7 @@ logger = logging.getLogger(__name__)
 db: Database = None
 indexer: BlockchainIndexer = None
 ai_service: AITaskService = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -80,6 +85,7 @@ async def lifespan(app: FastAPI):
 
     logger.info("XAI Blockchain Explorer stopped")
 
+
 # Create FastAPI application
 app = FastAPI(
     title="XAI Blockchain Explorer API",
@@ -93,7 +99,9 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:12080,http://localhost:5173").split(","),
+    allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:12080,http://localhost:5173").split(
+        ","
+    ),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -112,10 +120,20 @@ if route_dependencies:
 
 app.include_router(blockchain.router, prefix="/api/v1", tags=["Blockchain"], **router_kwargs)
 app.include_router(ai_tasks.router, prefix="/api/v1/ai", tags=["AI Tasks"], **router_kwargs)
-app.include_router(providers.router, prefix="/api/v1/ai/providers", tags=["AI Providers"], **router_kwargs)
-app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["Analytics"], **router_kwargs)
-app.include_router(governance.router, prefix="/api/v1/governance", tags=["Governance"], **router_kwargs)
+app.include_router(
+    providers.router,
+    prefix="/api/v1/ai/providers",
+    tags=["AI Providers"],
+    **router_kwargs,
+)
+app.include_router(
+    analytics.router, prefix="/api/v1/analytics", tags=["Analytics"], **router_kwargs
+)
+app.include_router(
+    governance.router, prefix="/api/v1/governance", tags=["Governance"], **router_kwargs
+)
 app.include_router(staking.router, prefix="/api/v1/staking", tags=["Staking"], **router_kwargs)
+
 
 @app.get("/")
 async def root():
@@ -131,26 +149,21 @@ async def root():
                 "compute_providers",
                 "model_comparison",
                 "live_feed",
-                "earnings_tracking"
+                "earnings_tracking",
             ],
-            "governance": [
-                "proposals",
-                "voting",
-                "tally"
-            ],
-            "staking": [
-                "validators",
-                "delegations",
-                "rewards",
-                "unbonding"
-            ],
+            "governance": ["proposals", "voting", "tally"],
+            "staking": ["validators", "delegations", "rewards", "unbonding"],
             "analytics": [
                 "network_stats",
                 "ai_usage_metrics",
                 "provider_performance",
-                "model_benchmarks"
+                "model_benchmarks",
             ],
-            "realtime": ["websocket_blocks", "websocket_transactions", "websocket_ai_tasks"]
+            "realtime": [
+                "websocket_blocks",
+                "websocket_transactions",
+                "websocket_ai_tasks",
+            ],
         },
         "endpoints": {
             "docs": "/docs",
@@ -160,9 +173,10 @@ async def root():
             "providers": "/api/v1/ai/providers",
             "governance": "/api/v1/governance/proposals",
             "staking": "/api/v1/staking/validators",
-            "websocket": "/api/v1/ws"
-        }
+            "websocket": "/api/v1/ws",
+        },
     }
+
 
 @app.get("/health")
 async def health_check():
@@ -184,9 +198,9 @@ async def health_check():
             "components": {
                 "database": "connected" if db_healthy else "disconnected",
                 "indexer": "running" if indexer_healthy else "stopped",
-                "ai_service": "running" if ai_service_healthy else "stopped"
+                "ai_service": "running" if ai_service_healthy else "stopped",
             },
-            "timestamp": "2025-12-04T12:00:00Z"
+            "timestamp": "2025-12-04T12:00:00Z",
         }
     except Exception as e:
         logger.error(f"Health check failed: {e}")
@@ -195,9 +209,10 @@ async def health_check():
             content={
                 "status": "unhealthy",
                 "error": str(e),
-                "timestamp": "2025-12-04T12:00:00Z"
-            }
+                "timestamp": "2025-12-04T12:00:00Z",
+            },
         )
+
 
 # WebSocket endpoint for live updates
 @app.websocket("/api/v1/ws/live")
@@ -255,6 +270,7 @@ async def websocket_live(websocket: WebSocket):
         if ai_service:
             ai_service.unsubscribe_websocket(websocket)
 
+
 @app.get("/api/v1/mempool", dependencies=route_dependencies)
 async def get_mempool(limit: int = 50):
     """Return recent mempool transactions and latest snapshot."""
@@ -269,6 +285,7 @@ async def get_mempool(limit: int = 50):
         "limit": limit,
     }
 
+
 @app.get("/api/v1/mempool/stats", dependencies=route_dependencies)
 async def get_mempool_stats():
     """Return the most recent mempool congestion snapshot."""
@@ -278,6 +295,7 @@ async def get_mempool_stats():
     if not stats:
         return JSONResponse(status_code=404, content={"error": "No mempool data available"})
     return jsonable_encoder(stats)
+
 
 @app.get("/api/v1/stats", dependencies=route_dependencies)
 async def get_stats():
@@ -292,15 +310,16 @@ async def get_stats():
             "explorer": {
                 "uptime_hours": indexer.get_uptime_hours() if indexer else 0,
                 "indexed_blocks": blockchain_stats.get("total_blocks", 0),
-                "indexed_ai_tasks": ai_stats.get("total_tasks", 0)
-            }
+                "indexed_ai_tasks": ai_stats.get("total_tasks", 0),
+            },
         }
     except Exception as e:
         logger.error(f"Error fetching stats: {e}")
         return JSONResponse(
             status_code=500,
-            content={"error": "Failed to fetch stats", "detail": str(e)}
+            content={"error": "Failed to fetch stats", "detail": str(e)},
         )
+
 
 if __name__ == "__main__":
     import uvicorn
@@ -316,5 +335,5 @@ if __name__ == "__main__":
         port=port,
         reload=os.getenv("RELOAD", "False").lower() == "true",
         log_level="info",
-        access_log=True
+        access_log=True,
     )

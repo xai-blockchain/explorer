@@ -1,21 +1,23 @@
-from __future__ import annotations
-
 """
 Blockchain indexer service - Indexes blocks, transactions, and AI tasks
 """
+
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
 import os
-from typing import Any
 from datetime import datetime
+from typing import Any
 from urllib.parse import urlparse
 
-from fastapi import WebSocket
 import httpx
 import websockets
+from fastapi import WebSocket
 
 logger = logging.getLogger(__name__)
+
 
 class BlockchainIndexer:
     """
@@ -129,7 +131,7 @@ class BlockchainIndexer:
             "total_transactions": 458923,
             "total_addresses": 12458,
             "indexed_ai_tasks": 1247,
-            "uptime_hours": self.get_uptime_hours()
+            "uptime_hours": self.get_uptime_hours(),
         }
 
     def subscribe_websocket(self, websocket: WebSocket):
@@ -164,11 +166,15 @@ class BlockchainIndexer:
             self.websockets.discard(ws)
 
     # ------------------------------------------------------------------ helpers
-    async def _http_get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any] | None:
+    async def _http_get(
+        self, path: str, params: dict[str, Any] | None = None
+    ) -> dict[str, Any] | None:
         """Perform HTTP GET against node API with optional params."""
         url = self._build_url(path)
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, params=params, timeout=10.0, headers=self._api_headers or None)
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                url, params=params, timeout=10.0, headers=self._api_headers or None
+            )
         if response.status_code == 200:
             return response.json()
         logger.debug("HTTP %s failed for %s", response.status_code, url)
@@ -185,7 +191,9 @@ class BlockchainIndexer:
             return None
         return await self._http_get(f"/blocks/{identifier}")
 
-    async def _process_block_event(self, block_summary: dict[str, Any], *, fetch_full: bool = True) -> None:
+    async def _process_block_event(
+        self, block_summary: dict[str, Any], *, fetch_full: bool = True
+    ) -> None:
         """Persist and broadcast a block event."""
         if not block_summary:
             return
@@ -213,7 +221,7 @@ class BlockchainIndexer:
                     extra_headers=headers,
                     ping_interval=20,
                     ping_timeout=20,
-                    max_size=2 ** 20,
+                    max_size=2**20,
                 ) as ws:
                     for channel in self._ws_channels:
                         await ws.send(json.dumps({"action": "subscribe", "channel": channel}))
@@ -247,6 +255,7 @@ class BlockchainIndexer:
             if self.db and txs:
                 await self.db.upsert_mempool_transactions(txs)
             await self._broadcast_update("mempool", data)
+
     async def _index_mempool_state(self) -> None:
         """Index mempool transactions and stats."""
         try:
@@ -255,7 +264,13 @@ class BlockchainIndexer:
             if overview and self.db:
                 transactions = overview.get("transactions") or []
                 await self.db.upsert_mempool_transactions(transactions)
-                await self._broadcast_update("mempool", {"limit": overview_payload.get("limit"), "transactions": transactions[:50]})
+                await self._broadcast_update(
+                    "mempool",
+                    {
+                        "limit": overview_payload.get("limit"),
+                        "transactions": transactions[:50],
+                    },
+                )
 
             stats_payload = await self._http_get("/mempool/stats", params={"limit": 0})
             if stats_payload and self.db:
