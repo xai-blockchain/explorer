@@ -25,7 +25,7 @@ mkdir -p "$ADAPTER_DIR"
 # Check if files exist (assume they were copied via scp)
 if [ ! -f "$ADAPTER_DIR/src/main.py" ]; then
     echo -e "${YELLOW}Please copy adapter files first:${NC}"
-    echo "  scp -r ~/blockchain-projects/xai-project/blockscout-adapter/* xai-testnet:~/blockscout-adapter/"
+    echo "  scp -r ~/blockchain-projects/xai-explorer/blockscout-adapter/* xai-testnet:~/blockscout-adapter/"
     exit 1
 fi
 
