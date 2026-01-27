@@ -105,7 +105,7 @@ jobs:
           trivyignores: '.trivyignore'
 
       - name: Upload Trivy results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always() && steps.check-dockerfile.outputs.exists == 'true'
         with:
           sarif_file: 'trivy-results-${{ matrix.dockerfile.image }}.sarif'
@@ -224,7 +224,7 @@ jobs:
           scanners: 'vuln,secret'
 
       - name: Upload Trivy filesystem results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-fs-results.sarif'
@@ -258,7 +258,7 @@ jobs:
           severity: 'CRITICAL,HIGH,MEDIUM'
 
       - name: Upload Trivy config results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-config-results.sarif'
@@ -292,7 +292,7 @@ jobs:
           scanners: 'secret'
 
       - name: Upload Trivy secrets results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-secrets-results.sarif'
